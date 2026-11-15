@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Campus Route Finder | Dijkstra's Algorithm</title>
+    <style>
+        :root {
+            --bg-color: #f4f7fb;
+            --card-bg: #ffffff;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --accent: #10b981;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: var(--text-dark);
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 4px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #dbeafe;
+            color: var(--primary);
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+        }
+
+        .card h2 {
+            font-size: 1.15rem;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-dark);
+        }
+
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            background-color: #fff;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        button {
+            flex: 1;
+            padding: 11px 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: var(--text-dark);
+            flex: 0.45;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        /* Results Card */
+        .results-card {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .metric-box {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .breadcrumbs {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .step-node {
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .step-node.start {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .step-node.end {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .step-arrow {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        /* SVG Map Styling */
+        .map-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        svg {
+            width: 100%;
+            height: auto;
+            min-height: 520px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .edge-line {
+            stroke: #cbd5e1;
+            stroke-width: 3;
+            transition: all 0.3s ease;
+        }
+
+        .edge-line.active {
+            stroke: var(--accent);
+            stroke-width: 6;
+            stroke-dasharray: 12;
+            animation: dashMove 1s linear infinite;
+        }
+
+        @keyframes dashMove {
+            to {
+                stroke-dashoffset: -24;
+            }
+        }
+
+        .edge-label-bg {
+            fill: #ffffff;
+            stroke: #cbd5e1;
+            stroke-width: 1;
+        }
+
+        .edge-label {
+            font-size: 11px;
+            fill: #475569;
+            font-weight: 600;
+            text-anchor: middle;
+            dominant-baseline: central;
+        }
+
+        .node-circle {
+            fill: #ffffff;
+            stroke: #64748b;
+            stroke-width: 3;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .node-circle.active {
+            fill: var(--accent);
+            stroke: #065f46;
+            stroke-width: 4;
+        }
+
+        .node-circle.start {
+            fill: #10b981;
+            stroke: #064e3b;
+        }
+
+        .node-circle.end {
+            fill: #ef4444;
+            stroke: #7f1d1d;
+        }
+
+        .node-id {
+            font-size: 12px;
+            font-weight: 700;
+            fill: #1e293b;
+            text-anchor: middle;
+            dominant-baseline: central;
+            pointer-events: none;
+        }
+
+        .node-circle.active + .node-id,
+        .node-circle.start + .node-id,
+        .node-circle.end + .node-id {
+            fill: #ffffff;
+        }
+
+        .node-title {
+            font-size: 12px;
+            font-weight: 600;
+            fill: #1e293b;
+            text-anchor: middle;
+        }
+
+        .legend {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .map-hint {
+            margin-top: 10px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .route-message {
+            margin-top: 14px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .route-message.error {
+            color: #b91c1c;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+
+        .route-message[hidden] {
+            display: none;
+        }
+
+        button:focus-visible,
+        select:focus-visible,
+        .map-node:focus-visible .node-circle {
+            outline: 3px solid #93c5fd;
+            outline-offset: 3px;
+        }
+
+        .map-node {
+            cursor: pointer;
+        }
+
+        .map-node:hover .node-circle {
+            stroke: var(--primary);
+            stroke-width: 4;
+        }
+
+        .map-node:focus {
+            outline: none;
+        }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.7;
+        }
+
+        @media (max-width: 520px) {
+            body {
+                padding: 12px;
+            }
+
+            .card {
+                padding: 16px;
+            }
+
+            svg {
+                min-height: 360px;
+            }
+
+            .legend {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Smart Campus Route Finder</h1>
+        <p>Interactive Graph Shortest-Path Visualizer powered by C & Python Flask</p>
+        <span class="badge">Data Structures: Dijkstra's Algorithm (10x10 Adjacency Matrix)</span>
+    </div>
+
+    <div class="container">
+        <!-- Left Panel: Controls & Results -->
+        <div>
+            <div class="card">
+                <h2>Route Planner</h2>
+                <div class="form-group">
+                    <label for="srcSelect">Source Location</label>
+                    <select id="srcSelect"></select>
+                </div>
+
+                <div class="form-group">
+                    <label for="destSelect">Destination Location</label>
+                    <select id="destSelect"></select>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn-primary" id="routeButton" type="button">Find Shortest Route</button>
+                    <button class="btn-secondary" id="swapButton" type="button" title="Swap Source and Destination">⇅ Swap</button>
+                </div>
+            </div>
+
+            <!-- Step-by-Step Output Card -->
+            <div class="card results-card" id="resultsCard">
+                <h2>Shortest Path Summary</h2>
+                <div class="metrics">
+                    <div class="metric-box">
+                        <div class="metric-value" id="totalDistance">0 m</div>
+                        <div class="metric-label">Total Distance</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-value" id="walkTime">0 min</div>
+                        <div class="metric-label">Est. Walking Time</div>
+                    </div>
+                </div>
+
+                <label>Step-by-Step Breadcrumb Path</label>
+                <div class="breadcrumbs" id="breadcrumbs"></div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Visual Campus Map -->
+        <div class="card">
+            <h2>Interactive Campus Map</h2>
+            <div class="map-wrapper">
+                <svg id="campusMap" viewBox="0 0 800 540" role="img" aria-label="Campus map with walking paths and distances"></svg>
+            </div>
+            <div class="legend" aria-label="Map legend">
+                <div class="legend-item"><span class="dot" style="background:#10b981"></span>Start</div>
+                <div class="legend-item"><span class="dot" style="background:#ef4444"></span>Destination</div>
+                <div class="legend-item"><span class="dot" style="background:#cbd5e1"></span>Campus path</div>
+            </div>
+            <p class="map-hint">Select a location above, or click a map marker to choose it.</p>
+        </div>
+    </div>
+    <div class="container">
+        <div class="card route-message error" id="routeMessage" role="alert" hidden></div>
+    </div>
+
+    <script>
+        "use strict";
+
+        const locations = [
+            "Main Gate",
+            "Admin Block",
+            "Central Library",
+            "Computer Science Dept",
+            "Electronics Dept",
+            "Main Canteen",
+            "Auditorium",
+            "Sports Complex",
+            "Boys Hostel",
+            "Girls Hostel"
+        ];
+
+        const positions = [
+            { x: 90, y: 265 }, { x: 220, y: 170 }, { x: 350, y: 105 },
+            { x: 490, y: 125 }, { x: 515, y: 270 }, { x: 365, y: 365 },
+            { x: 220, y: 345 }, { x: 600, y: 410 }, { x: 700, y: 275 },
+            { x: 700, y: 95 }
+        ];
+
+        const connections = [
+            [0, 1, 120], [0, 6, 200], [1, 2, 150], [1, 3, 220],
+            [1, 6, 180], [2, 3, 140], [2, 4, 160], [2, 5, 200],
+            [3, 4, 110], [3, 8, 350], [4, 5, 130], [4, 7, 280],
+            [5, 6, 170], [5, 7, 210], [5, 8, 260], [5, 9, 240],
+            [6, 7, 300], [6, 9, 290], [7, 8, 190], [7, 9, 250],
+            [8, 9, 320]
+        ];
+
+        const sourceSelect = document.getElementById("srcSelect");
+        const destinationSelect = document.getElementById("destSelect");
+        const map = document.getElementById("campusMap");
+        const resultCard = document.getElementById("resultsCard");
+        const routeMessage = document.getElementById("routeMessage");
+        const routeButton = document.getElementById("routeButton");
+        let selectedPath = [];
+        let selectedEdges = [];
+        let focusedSelect = sourceSelect;
+
+        function svgElement(name, attributes) {
+            const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+            Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+            return element;
+        }
+
+        function addLocations() {
+            [sourceSelect, destinationSelect].forEach((select) => {
+                locations.forEach((location, index) => {
+                    const option = document.createElement("option");
+                    option.value = String(index);
+                    option.textContent = location;
+                    select.appendChild(option);
+                });
+            });
+            sourceSelect.value = "0";
+            destinationSelect.value = "9";
+        }
+
+        function drawMap() {
+            const edgeLayer = svgElement("g", { "aria-hidden": "true" });
+            const nodeLayer = svgElement("g", {});
+
+            connections.forEach(([from, to, distance]) => {
+                const start = positions[from];
+                const end = positions[to];
+                const line = svgElement("line", {
+                    x1: start.x, y1: start.y, x2: end.x, y2: end.y,
+                    class: "edge-line", "data-edge": `${from}-${to}`
+                });
+                edgeLayer.appendChild(line);
+
+                const labelX = (start.x + end.x) / 2;
+                const labelY = (start.y + end.y) / 2 - 8;
+                const background = svgElement("rect", {
+                    x: labelX - 22, y: labelY - 9, width: 44, height: 18,
+                    rx: 6, class: "edge-label-bg"
+                });
+                const label = svgElement("text", {
+                    x: labelX, y: labelY, class: "edge-label"
+                });
+                label.textContent = `${distance} m`;
+                edgeLayer.append(background, label);
+            });
+
+            locations.forEach((location, index) => {
+                const { x, y } = positions[index];
+                const group = svgElement("g", {
+                    class: "map-node", tabindex: "0", role: "button",
+                    "aria-label": `Select ${location}`, "data-node": index
+                });
+                const circle = svgElement("circle", {
+                    cx: x, cy: y, r: 19, class: "node-circle"
+                });
+                const id = svgElement("text", {
+                    x, y, class: "node-id", "aria-hidden": "true"
+                });
+                id.textContent = String(index);
+                const title = svgElement("text", {
+                    x, y: y + 34, class: "node-title"
+                });
+                title.textContent = location;
+                group.append(circle, id, title);
+                group.addEventListener("click", () => chooseMapLocation(index));
+                group.addEventListener("keydown", (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        chooseMapLocation(index);
+                    }
+                });
+                nodeLayer.appendChild(group);
+            });
+
+            map.replaceChildren(edgeLayer, nodeLayer);
+            updateMap();
+        }
+
+        function chooseMapLocation(index) {
+            focusedSelect.value = String(index);
+            focusedSelect.dispatchEvent(new Event("change"));
+            focusedSelect = focusedSelect === sourceSelect ? destinationSelect : sourceSelect;
+            focusedSelect.focus();
+        }
+
+        function clearRoute() {
+            selectedPath = [];
+            selectedEdges = [];
+            resultCard.style.display = "none";
+            updateMap();
+        }
+
+        function updateMap() {
+            const source = Number(sourceSelect.value);
+            const destination = Number(destinationSelect.value);
+            const pathSet = new Set(selectedPath);
+            const activeEdges = new Set(selectedEdges);
+
+            map.querySelectorAll(".edge-line").forEach((line) => {
+                line.classList.toggle("active", activeEdges.has(line.dataset.edge));
+            });
+            map.querySelectorAll(".map-node").forEach((node) => {
+                const index = Number(node.dataset.node);
+                const circle = node.querySelector(".node-circle");
+                circle.classList.toggle("start", index === source);
+                circle.classList.toggle("end", index === destination && destination !== source);
+                circle.classList.toggle("active", pathSet.has(index));
+            });
+        }
+
+        function showError(message) {
+            routeMessage.textContent = message;
+            routeMessage.hidden = false;
+        }
+
+        function renderRoute(route) {
+            const distance = Number(route.distance);
+            if (!Number.isFinite(distance) || !Array.isArray(route.path) ||
+                !Array.isArray(route.path_names) || !Array.isArray(route.step_distances)) {
+                throw new Error("The server returned an invalid route.");
+            }
+
+            selectedPath = route.path;
+            selectedEdges = route.path.slice(1).map((node, index) => {
+                const previous = route.path[index];
+                return previous < node ? `${previous}-${node}` : `${node}-${previous}`;
+            });
+            document.getElementById("totalDistance").textContent = `${distance} m`;
+            document.getElementById("walkTime").textContent =
+                `${Math.ceil(distance / 80)} min`;
+
+            const breadcrumbs = document.getElementById("breadcrumbs");
+            breadcrumbs.replaceChildren();
+            route.path_names.forEach((name, index) => {
+                if (index > 0) {
+                    const arrow = document.createElement("span");
+                    arrow.className = "step-arrow";
+                    arrow.textContent = `— ${route.step_distances[index - 1]} m →`;
+                    breadcrumbs.appendChild(arrow);
+                }
+                const node = document.createElement("span");
+                node.className = "step-node";
+                if (index === 0) node.classList.add("start");
+                if (index === route.path_names.length - 1 && route.path_names.length > 1) {
+                    node.classList.add("end");
+                }
+                node.textContent = name;
+                breadcrumbs.appendChild(node);
+            });
+            resultCard.style.display = "block";
+            routeMessage.hidden = true;
+            updateMap();
+        }
+
+        async function findRoute() {
+            routeButton.disabled = true;
+            routeButton.textContent = "Finding route...";
+            routeMessage.hidden = true;
+            clearRoute();
+
+            try {
+                const response = await fetch("/route", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        src: Number(sourceSelect.value),
+                        dest: Number(destinationSelect.value)
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || "Unable to find a route.");
+                }
+                renderRoute(data);
+            } catch (error) {
+                showError(error instanceof Error ? error.message : "Unable to find a route.");
+            } finally {
+                routeButton.disabled = false;
+                routeButton.textContent = "Find Shortest Route";
+            }
+        }
+
+        function swapLocations() {
+            const previousSource = sourceSelect.value;
+            sourceSelect.value = destinationSelect.value;
+            destinationSelect.value = previousSource;
+            focusedSelect = sourceSelect;
+            clearRoute();
+            resultCard.style.display = "none";
+            routeMessage.hidden = true;
+        }
+
+        sourceSelect.addEventListener("focus", () => { focusedSelect = sourceSelect; });
+        destinationSelect.addEventListener("focus", () => { focusedSelect = destinationSelect; });
+        sourceSelect.addEventListener("change", clearRoute);
+        destinationSelect.addEventListener("change", clearRoute);
+        document.getElementById("routeButton").addEventListener("click", findRoute);
+        document.getElementById("swapButton").addEventListener("click", swapLocations);
+        addLocations();
+        drawMap();
+    </script>
+</body>
+</html>
